@@ -1,0 +1,26 @@
+{
+  "name": "tfjs-mnist-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "scripts": {
+    "start": "node ./dist/index.js",
+    "build": "tsc -p ./tsconfig.json",
+    "lint": "tslint -p ./tsconfig.json"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/argparse": "^1.0.35",
+    "@types/sharp": "^0.21.2",
+    "ts-node": "^8.0.2",
+    "tslint": "^5.12.1",
+    "typescript": "^3.2.4"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^0.14.2",
+    "@tensorflow/tfjs-node": "^0.2.3",
+    "argparse": "^1.0.10",
+    "sharp": "^0.21.3"
+  }
+}

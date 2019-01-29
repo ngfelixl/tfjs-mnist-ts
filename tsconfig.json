@@ -1,0 +1,17 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2017",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "sourceMap": true,
+    "sourceRoot": "./src",
+    "lib": [
+      "dom",
+      "es2018"
+    ],
+    "skipLibCheck": true
+  }
+}
