@@ -1,86 +1,47 @@
-import { MnistDataset } from './data';
-import { ArgumentParser } from 'argparse';
-import { Sequential } from '@tensorflow/tfjs';
+import { MnistDataset } from './utils/data';
+import { Sequential, Model, train as optimizers } from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-node';
 
-import { DenseNetwork } from './models/dense-network';
-import { ConvolutionalNetwork } from './models/convolutional-network';
-import { SimpleConvolutionalNetwork } from './models/simple-convolutional-network';
+import { createFFN } from './networks/dense-network';
+import { createCNN } from './networks/convolutional-network';
+import { createSimpleCNN } from './networks/simple-convolutional-network';
+import { parseArguments } from './utils/parse-arguments';
+import { train } from './train';
+import { evaluate } from './evaluate';
+import { Config } from './models/config';
 
 const mnist = new MnistDataset();
+const learningRate = 0.015;
 
-async function run(epochs: number, batchSize: number, model: string, modelSavePath: string) {
-  let nn: { model: Sequential };
-  switch (model) {
-    case 'dense': nn = new DenseNetwork(28, 28); break;
-    case 'conv': nn = new ConvolutionalNetwork(28, 28); break;
-    case 'simpleConv': nn = new SimpleConvolutionalNetwork(28, 28); break;
-  }
-  console.log('Loading data...');
+function compile(model: Sequential) {
+  // const optimizer = 'rmsprop';
+  const optimizer = optimizers.rmsprop(learningRate);
+  model.compile({
+    optimizer: optimizer,
+    loss: 'categoricalCrossentropy',
+    metrics: [ 'accuracy' ]
+  });
+}
+
+async function run(config: Config) {
+  let model: Sequential;
   await mnist.loadData();
 
-  const { images: trainImages, labels: trainLabels } = mnist.getTrainData();
-  nn.model.summary();
+  switch (config.model) {
+    case 'dense': model = createFFN(28, 28); break;
+    case 'conv': model = createCNN(28, 28); break;
+    case 'simpleConv': model = createSimpleCNN(28, 28); break;
+  }
 
-  // let epochBeginTime;
-  // let millisPerStep;
+  compile(model);
+  await train(model, mnist, config);
+  await evaluate(model, mnist);
 
-  const validationSplit = 0.15;
-  // const numTrainExamplesPerEpoch = trainImages.shape[0] * (1 - validationSplit);
-  // const numTrainBatchesPerEpoch = Math.ceil(numTrainExamplesPerEpoch / batchSize);
-
-  console.log('Train model...');
-
-  await nn.model.fit(trainImages, trainLabels, {
-    epochs,
-    batchSize,
-    validationSplit,
-    stepsPerEpoch: 1
-  });
-
-  const { images: testImages, labels: testLabels } = mnist.getTestData();
-  const evalOutput = nn.model.evaluate(testImages, testLabels);
-
-  console.log(
-    `\nEvaluation result:\n` +
-    `  Loss = ${evalOutput[0].dataSync()[0].toFixed(3)}; `+
-    `Accuracy = ${evalOutput[1].dataSync()[0].toFixed(3)}`);
-
-  console.log(
-    `\nEvaluation result:\n` +
-    `  Loss = ${evalOutput[0].dataSync()[0].toFixed(3)}; `+
-    `Accuracy = ${evalOutput[1].dataSync()[0].toFixed(3)}`);
-
-  if (modelSavePath != null) {
-    await nn.model.save(`file://${modelSavePath}`);
-    console.log(`Saved model to path: ${modelSavePath}`);
+  if (config.modelSavePath != null) {
+    await model.save(`file://${config.modelSavePath}`);
+    console.log(`Saved model to path: ${config.modelSavePath}`);
   }
 }
 
-
-const parser = new ArgumentParser({
-  description: 'TensorFlow.js-Node MNIST Example.',
-  addHelp: true
-});
-parser.addArgument('--epochs', {
-  type: 'int',
-  defaultValue: 20,
-  help: 'Number of epochs to train the model for.'
-});
-parser.addArgument('--batch_size', {
-  type: 'int',
-  defaultValue: 128,
-  help: 'Batch size to be used during model training.'
-});
-parser.addArgument('--model', {
-  type: 'string',
-  defaultValue: 'conv',
-  help: 'Model to be used. Choose between `conv` and `dense`'
-});
-parser.addArgument('--model_save_path', {
-  type: 'string',
-  help: 'Path to which the model will be saved after training.'
-});
-const args = parser.parseArgs();
-
-run(args.epochs, args.batch_size, args.model, args.model_save_path);
+const config = parseArguments();
+run(config);
